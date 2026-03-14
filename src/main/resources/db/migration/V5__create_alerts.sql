@@ -1,7 +1,7 @@
 CREATE TABLE alerts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    type VARCHAR(30) NOT NULL,            
+    type VARCHAR(30) NOT NULL,           
     message TEXT NOT NULL,
     transaction_id UUID REFERENCES transactions(id),
     is_read BOOLEAN DEFAULT FALSE,
