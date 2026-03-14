@@ -1,6 +1,7 @@
 package com.financetracker.finance_tracker.user.entity;
 
 import java.sql.Timestamp;
+import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -18,9 +19,9 @@ import lombok.NoArgsConstructor;
 public class RefreshToken {
 
     @Id
-    private String id;
+    private UUID id;
     @Column(name = "user_id", nullable = false) 
-    private String userId;
+    private UUID userId;
     @Column(nullable = false, unique = true)
     private String token;
     @Column(name = "expiry", nullable = false)
