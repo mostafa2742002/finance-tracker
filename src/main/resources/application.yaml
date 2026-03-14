@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: finance-tracker
+
+  flyway:
+    enabled: true
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    
+  datasource:
+    url: jdbc:postgresql://localhost:5434/finance_tracker
+    username: postgres
+    password: postgres123
+    driver-class-name: org.postgresql.Driver
