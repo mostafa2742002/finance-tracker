@@ -7,3 +7,7 @@ spring:
     username: postgres
     password: postgres123
     driver-class-name: org.postgresql.Driver
+
+jwt:
+  secret: mySuperSecretKeyForJwtSigningshdfgkjsdgjkbsdfg
+  expiration: 3600000 
