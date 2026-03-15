@@ -115,4 +115,43 @@ public class AuthService {
 
         return new ApiResponse<>(true, "Login successful", authResponse);
     }
+
+    @Transactional
+    public ApiResponse<AuthResponse> refreshToken(String refreshToken) {
+        RefreshToken tokenEntity = refreshTokenRepo.findByToken(refreshToken)
+                .orElseThrow(() -> new InvalidEmailOrPassword("Invalid refresh token"));
+
+        if (tokenEntity.getExpiry().before(new Timestamp(System.currentTimeMillis()))) {
+            refreshTokenRepo.delete(tokenEntity);
+            throw new InvalidEmailOrPassword("Refresh token has expired");
+        }
+
+        User user = userRepo.findById(tokenEntity.getUserId())
+                .orElseThrow(() -> new InvalidEmailOrPassword("User not found for refresh token"));
+
+        UserDetails userDetails = new org.springframework.security.core.userdetails.User(
+                user.getEmail(),
+                user.getPassword(),
+                List.of(new SimpleGrantedAuthority(user.getRole())));
+
+        String newAccessToken = jwtUtils.generateAccessToken(userDetails);
+
+        AuthResponse authResponse = AuthResponse.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(refreshToken)
+                .expiresIn(jwtUtils.getAccessTokenValidity())
+                .build();
+
+        return new ApiResponse<>(true, "Access token refreshed successfully", authResponse);
+    }
+
+
+    @Transactional
+    public ApiResponse<String> logout(String refreshToken) {
+        RefreshToken tokenEntity = refreshTokenRepo.findByToken(refreshToken)
+                .orElseThrow(() -> new InvalidEmailOrPassword("Invalid refresh token"));
+        refreshTokenRepo.delete(tokenEntity);
+        
+        return new ApiResponse<>(true, "Logged out successfully");
+    }
 }
