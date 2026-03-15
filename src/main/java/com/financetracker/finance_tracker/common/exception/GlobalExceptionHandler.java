@@ -47,6 +47,18 @@ public class GlobalExceptionHandler {
                 .body(new ApiResponse<>(false, ex.getMessage()));
     }
 
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<ApiResponse<String>> handleInvalidRefreshTokenException(InvalidRefreshTokenException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ApiResponse<>(false, ex.getMessage()));
+    }
+
+    @ExceptionHandler(ExpiredRefreshTokenException.class)
+    public ResponseEntity<ApiResponse<String>> handleExpiredRefreshTokenException(ExpiredRefreshTokenException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ApiResponse<>(false, ex.getMessage()));
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponse<String>> handleAccessDeniedException(AccessDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)

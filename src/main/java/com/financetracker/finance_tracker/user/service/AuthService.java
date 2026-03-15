@@ -1,6 +1,10 @@
 package com.financetracker.finance_tracker.user.service;
 
 import java.sql.Timestamp;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.nio.charset.StandardCharsets;
+import java.util.HexFormat;
 import java.util.List;
 
 import org.springframework.security.core.userdetails.UserDetails;
@@ -9,7 +13,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
 import com.financetracker.finance_tracker.common.exception.DuplicateEmailException;
+import com.financetracker.finance_tracker.common.exception.ExpiredRefreshTokenException;
 import com.financetracker.finance_tracker.common.exception.InvalidEmailOrPassword;
+import com.financetracker.finance_tracker.common.exception.InvalidRefreshTokenException;
 import com.financetracker.finance_tracker.common.jwt.JwtUtils;
 import com.financetracker.finance_tracker.common.response.ApiResponse;
 import com.financetracker.finance_tracker.user.dto.AuthResponse;
@@ -61,11 +67,12 @@ public class AuthService {
                 userDetails);
 
         String refreshToken = jwtUtils.generateRefreshToken();
+        String refreshTokenHash = hashRefreshToken(refreshToken);
         Timestamp expiry = new Timestamp(System.currentTimeMillis() + jwtUtils.getRefreshTokenValidity());
 
         RefreshToken refreshTokenEntity = RefreshToken.builder()
                 .userId(savedUser.getId())
-                .token(refreshToken)
+                .token(refreshTokenHash)
                 .expiry(expiry)
                 .createdAt(now)
                 .build();
@@ -97,11 +104,12 @@ public class AuthService {
         String accessToken = jwtUtils.generateAccessToken(userDetails);
 
         String refreshToken = jwtUtils.generateRefreshToken();
+        String refreshTokenHash = hashRefreshToken(refreshToken);
         Timestamp expiry = new Timestamp(System.currentTimeMillis() + jwtUtils.getRefreshTokenValidity());
 
         RefreshToken refreshTokenEntity = RefreshToken.builder()
                 .userId(user.getId())
-                .token(refreshToken)
+                .token(refreshTokenHash)
                 .expiry(expiry)
                 .createdAt(new Timestamp(System.currentTimeMillis()))
                 .build();
@@ -118,16 +126,18 @@ public class AuthService {
 
     @Transactional
     public ApiResponse<AuthResponse> refreshToken(String refreshToken) {
-        RefreshToken tokenEntity = refreshTokenRepo.findByToken(refreshToken)
-                .orElseThrow(() -> new InvalidEmailOrPassword("Invalid refresh token"));
+        String refreshTokenHash = hashRefreshToken(refreshToken);
+        RefreshToken tokenEntity = refreshTokenRepo.findByToken(refreshTokenHash)
+                .orElseThrow(() -> new InvalidRefreshTokenException("Invalid refresh token"));
 
         if (tokenEntity.getExpiry().before(new Timestamp(System.currentTimeMillis()))) {
             refreshTokenRepo.delete(tokenEntity);
-            throw new InvalidEmailOrPassword("Refresh token has expired");
+            throw new ExpiredRefreshTokenException("Refresh token has expired");
         }
+        refreshTokenRepo.delete(tokenEntity);
 
         User user = userRepo.findById(tokenEntity.getUserId())
-                .orElseThrow(() -> new InvalidEmailOrPassword("User not found for refresh token"));
+                .orElseThrow(() -> new InvalidRefreshTokenException("User not found for refresh token"));
 
         UserDetails userDetails = new org.springframework.security.core.userdetails.User(
                 user.getEmail(),
@@ -136,22 +146,43 @@ public class AuthService {
 
         String newAccessToken = jwtUtils.generateAccessToken(userDetails);
 
+        String newRefreshToken = jwtUtils.generateRefreshToken();
+        String newRefreshTokenHash = hashRefreshToken(newRefreshToken);
+        Timestamp expiry = new Timestamp(System.currentTimeMillis() + jwtUtils.getRefreshTokenValidity());
+        RefreshToken newRefreshTokenEntity = RefreshToken.builder()
+                .userId(user.getId())
+                .token(newRefreshTokenHash)
+                .expiry(expiry)
+                .createdAt(new Timestamp(System.currentTimeMillis()))
+                .build();
+        refreshTokenRepo.save(newRefreshTokenEntity);
+
         AuthResponse authResponse = AuthResponse.builder()
                 .accessToken(newAccessToken)
-                .refreshToken(refreshToken)
+                .refreshToken(newRefreshToken)
                 .expiresIn(jwtUtils.getAccessTokenValidity())
                 .build();
 
         return new ApiResponse<>(true, "Access token refreshed successfully", authResponse);
     }
 
-
     @Transactional
     public ApiResponse<String> logout(String refreshToken) {
-        RefreshToken tokenEntity = refreshTokenRepo.findByToken(refreshToken)
-                .orElseThrow(() -> new InvalidEmailOrPassword("Invalid refresh token"));
+        String refreshTokenHash = hashRefreshToken(refreshToken);
+        RefreshToken tokenEntity = refreshTokenRepo.findByToken(refreshTokenHash)
+                .orElseThrow(() -> new InvalidRefreshTokenException("Invalid refresh token"));
         refreshTokenRepo.delete(tokenEntity);
-        
+
         return new ApiResponse<>(true, "Logged out successfully");
+    }
+
+    private String hashRefreshToken(String refreshToken) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(refreshToken.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("Unable to hash refresh token", ex);
+        }
     }
 }

@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.financetracker.finance_tracker.common.response.ApiResponse;
 import com.financetracker.finance_tracker.user.dto.AuthResponse;
 import com.financetracker.finance_tracker.user.dto.LoginRequest;
+import com.financetracker.finance_tracker.user.dto.RefreshTokenRequest;
 import com.financetracker.finance_tracker.user.dto.SignupRequest;
 import com.financetracker.finance_tracker.user.service.AuthService;
 
@@ -29,18 +30,17 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request)
-    {
+    public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(@RequestBody String refreshToken) {
-        return ResponseEntity.ok(authService.refreshToken(refreshToken));
+    public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+        return ResponseEntity.ok(authService.refreshToken(request.getRefreshToken()));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<String>> logout(@RequestBody String refreshToken) {
-        return ResponseEntity.ok(authService.logout(refreshToken));
+    public ResponseEntity<ApiResponse<String>> logout(@Valid @RequestBody RefreshTokenRequest request) {
+        return ResponseEntity.ok(authService.logout(request.getRefreshToken()));
     }
 }
