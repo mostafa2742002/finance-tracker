@@ -9,10 +9,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.security.SecureRandom;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
+import java.util.Base64;
 import java.util.function.Function;
 
 @Component
@@ -23,6 +24,11 @@ public class JwtUtils {
 
     @Value("${jwt.expiration}")
     private long jwtExpiration;
+
+    @Value("${jwt.refresh-expiration}")
+    private long refreshTokenExpiration;
+
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     // ==================== EXTRACT DATA FROM TOKEN ====================
 
@@ -66,7 +72,17 @@ public class JwtUtils {
     }
 
     public String generateRefreshToken() {
-        return UUID.randomUUID().toString();
+        byte[] randomBytes = new byte[32];
+        SECURE_RANDOM.nextBytes(randomBytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
+    }
+
+    public long getAccessTokenValidity() {
+        return jwtExpiration;
+    }
+
+    public long getRefreshTokenValidity() {
+        return refreshTokenExpiration;
     }
 
     // ==================== VALIDATE TOKEN ====================
