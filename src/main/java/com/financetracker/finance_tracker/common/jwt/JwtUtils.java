@@ -6,6 +6,7 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
@@ -14,7 +15,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 
-
+@Component
 public class JwtUtils {
 
     @Value("${jwt.secret}")
@@ -25,7 +26,7 @@ public class JwtUtils {
 
     // ==================== EXTRACT DATA FROM TOKEN ====================
 
-    public String extractUsername(String token) {
+    public String extractEmail(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
@@ -34,7 +35,7 @@ public class JwtUtils {
         return claimsResolver.apply(claims);
     }
 
-    private Claims extractAllClaims(String token) {
+    public Claims extractAllClaims(String token) {
         return Jwts.parser()
                 .verifyWith(getSigningKey())
                 .build()
@@ -47,8 +48,9 @@ public class JwtUtils {
     public String generateAccessToken(UserDetails userDetails) {
 
         Map<String, Object> claims = new HashMap<>();
-        claims.put("role", userDetails.getAuthorities().stream().findFirst().orElseThrow(() -> new RuntimeException("User has no roles")).getAuthority());
-        claims.put("userEmail", userDetails.getUsername()); 
+        claims.put("role", userDetails.getAuthorities().stream().findFirst()
+                .orElseThrow(() -> new RuntimeException("User has no roles")).getAuthority());
+        claims.put("userEmail", userDetails.getUsername());
 
         return generateAccessToken(claims, userDetails);
     }
@@ -70,16 +72,17 @@ public class JwtUtils {
     // ==================== VALIDATE TOKEN ====================
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
-        final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
+        return isTokenValid(extractAllClaims(token), userDetails);
     }
 
-    private boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
-    }
+    public boolean isTokenValid(Claims claims, UserDetails userDetails) {
+        String email = claims.getSubject();
+        Date expiration = claims.getExpiration();
 
-    private Date extractExpiration(String token) {
-        return extractClaim(token, Claims::getExpiration);
+        return email != null
+                && email.equals(userDetails.getUsername())
+                && expiration != null
+                && expiration.after(new Date());
     }
 
     // ==================== HELPER ====================
