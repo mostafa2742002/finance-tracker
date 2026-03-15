@@ -1,5 +1,10 @@
 server:
   port: 8081
+
+app:
+  cors:
+    allowed-origins: http://localhost:3000
+
 spring:
   application:
     name: finance-tracker
