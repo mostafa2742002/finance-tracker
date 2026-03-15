@@ -11,4 +11,6 @@ import com.financetracker.finance_tracker.user.entity.RefreshToken;
 @Repository
 public interface RefreshTokenRepo extends JpaRepository<RefreshToken, UUID> {
     Optional<RefreshToken> findByToken(String token);
+
+    void deleteByUserId(UUID userId);
 }

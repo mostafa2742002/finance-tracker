@@ -80,11 +80,14 @@ public class AuthService {
         return new ApiResponse<>(true, "User registered successfully", authResponse);
     }
 
+    @Transactional
     public ApiResponse<AuthResponse> login(@Valid LoginRequest request) {
         User user = userRepo.findByEmail(request.getEmail());
         if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new InvalidEmailOrPassword("Invalid email or password");
         }
+
+        refreshTokenRepo.deleteByUserId(user.getId());
 
         UserDetails userDetails = new org.springframework.security.core.userdetails.User(
                 user.getEmail(),

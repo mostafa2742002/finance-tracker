@@ -41,6 +41,12 @@ public class GlobalExceptionHandler {
                 .body(new ApiResponse<>(false, ex.getMessage()));
     }
 
+    @ExceptionHandler(InvalidEmailOrPassword.class)
+    public ResponseEntity<ApiResponse<String>> handleInvalidEmailOrPasswordException(InvalidEmailOrPassword ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ApiResponse<>(false, ex.getMessage()));
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponse<String>> handleAccessDeniedException(AccessDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
