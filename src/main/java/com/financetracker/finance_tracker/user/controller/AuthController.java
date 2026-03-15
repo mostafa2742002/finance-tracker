@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.financetracker.finance_tracker.common.response.ApiResponse;
 import com.financetracker.finance_tracker.user.dto.AuthResponse;
+import com.financetracker.finance_tracker.user.dto.LoginRequest;
 import com.financetracker.finance_tracker.user.dto.SignupRequest;
 import com.financetracker.finance_tracker.user.service.AuthService;
 
@@ -25,5 +26,11 @@ public class AuthController {
     @PostMapping("/signup")
     public ResponseEntity<ApiResponse<AuthResponse>> signup(@Valid @RequestBody SignupRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.signup(request));
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request)
+    {
+        return ResponseEntity.ok(authService.login(request));
     }
 }

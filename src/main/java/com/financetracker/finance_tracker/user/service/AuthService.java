@@ -9,9 +9,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
 import com.financetracker.finance_tracker.common.exception.DuplicateEmailException;
+import com.financetracker.finance_tracker.common.exception.InvalidEmailOrPassword;
 import com.financetracker.finance_tracker.common.jwt.JwtUtils;
 import com.financetracker.finance_tracker.common.response.ApiResponse;
 import com.financetracker.finance_tracker.user.dto.AuthResponse;
+import com.financetracker.finance_tracker.user.dto.LoginRequest;
 import com.financetracker.finance_tracker.user.dto.SignupRequest;
 import com.financetracker.finance_tracker.user.entity.RefreshToken;
 import com.financetracker.finance_tracker.user.entity.User;
@@ -76,5 +78,38 @@ public class AuthService {
                 .build();
 
         return new ApiResponse<>(true, "User registered successfully", authResponse);
+    }
+
+    public ApiResponse<AuthResponse> login(@Valid LoginRequest request) {
+        User user = userRepo.findByEmail(request.getEmail());
+        if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new InvalidEmailOrPassword("Invalid email or password");
+        }
+
+        UserDetails userDetails = new org.springframework.security.core.userdetails.User(
+                user.getEmail(),
+                user.getPassword(),
+                List.of(new SimpleGrantedAuthority(user.getRole())));
+
+        String accessToken = jwtUtils.generateAccessToken(userDetails);
+
+        String refreshToken = jwtUtils.generateRefreshToken();
+        Timestamp expiry = new Timestamp(System.currentTimeMillis() + jwtUtils.getRefreshTokenValidity());
+
+        RefreshToken refreshTokenEntity = RefreshToken.builder()
+                .userId(user.getId())
+                .token(refreshToken)
+                .expiry(expiry)
+                .createdAt(new Timestamp(System.currentTimeMillis()))
+                .build();
+        refreshTokenRepo.save(refreshTokenEntity);
+
+        AuthResponse authResponse = AuthResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .expiresIn(jwtUtils.getAccessTokenValidity())
+                .build();
+
+        return new ApiResponse<>(true, "Login successful", authResponse);
     }
 }
