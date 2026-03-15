@@ -19,3 +19,9 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+jwt:
+  # dev-safe fallback; override via environment in non-local deployments
+  secret: bXlTdXBlclNlY3JldEtleUZvckp3dFNpZ25pbmcxMjM0NTY3ODkwMTIzNDU2
+  expiration: 3600000
+  refresh-expiration: 604800000

@@ -13,5 +13,6 @@ spring:
     driver-class-name: org.postgresql.Driver
 
 jwt:
-  secret: mySuperSecretKeyForJwtSigningshdfgkjsdgjkbsdfg
+  secret: bXlTdXBlclNlY3JldEtleUZvckp3dFNpZ25pbmcxMjM0NTY3ODkwMTIzNDU2
   expiration: 3600000
+  refresh-expiration: 604800000
