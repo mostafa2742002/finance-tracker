@@ -23,7 +23,7 @@ public class TransactionService {
 
     private final TransactionRepo transactionRepo;
 
-    public ApiResponse<TransactionResponse> create(TransactionRequest request, UUID userId) {
+    public ApiResponse<TransactionResponse> createTransaction(TransactionRequest request, UUID userId) {
 
         if (transactionRepo.findByClientId(request.getClientId()).isPresent()) {
             Transaction existingTransaction = transactionRepo.findByClientId(request.getClientId()).get();
@@ -93,5 +93,49 @@ public class TransactionService {
         Page<TransactionResponse> responsePage = transactions.map(TransactionResponse::fromEntity);
         return new ApiResponse<>(true, "Transactions fetched successfully", responsePage);
     }
+
+    public ApiResponse<TransactionResponse> getTransactionById(UUID transactionId, UUID userId) {
+        Transaction transaction = transactionRepo.findById(transactionId)
+                .orElseThrow(() -> new RuntimeException("Transaction not found"));
+
+        if (!transaction.getUserId().equals(userId)) {
+            throw new RuntimeException("Unauthorized access to transaction");
+        }
+
+        TransactionResponse response = TransactionResponse.fromEntity(transaction);
+        return new ApiResponse<>(true, "Transaction fetched successfully", response);
+    }
+
+    public ApiResponse<TransactionResponse> updateTransaction(UUID transactionId, TransactionRequest request, UUID userId) {
+        Transaction transaction = transactionRepo.findById(transactionId)
+                .orElseThrow(() -> new RuntimeException("Transaction not found"));
+
+        if (!transaction.getUserId().equals(userId)) {
+            throw new RuntimeException("Unauthorized access to transaction");   
+        }
+
+        transaction.setAmount(request.getAmount() != null ? request.getAmount() : transaction.getAmount());
+        transaction.setDescription(request.getDescription() != null ? request.getDescription() : transaction.getDescription ());
+        transaction.setCategory(request.getCategory() != null ? request.getCategory() : transaction.getCategory());
+        transaction.setType(request.getType() != null ? request.getType() : transaction.getType());
+        transaction.setDate(request.getDate() != null ? request.getDate() : transaction.getDate());
+
+        Transaction updatedTransaction = transactionRepo.save(transaction);
+        TransactionResponse response = TransactionResponse.fromEntity(updatedTransaction);
+        return new ApiResponse<>(true, "Transaction updated successfully", response);
+
+    }
+
+    public ApiResponse<Void> deleteTransaction(UUID transactionId, UUID userId) {
+        Transaction transaction = transactionRepo.findById(transactionId)
+                .orElseThrow(() -> new RuntimeException("Transaction not found"));
+
+        if (!transaction.getUserId().equals(userId)) {
+            throw new RuntimeException("Unauthorized access to transaction");
+        }
+
+        transactionRepo.delete(transaction);
+        return new ApiResponse<>(true, "Transaction deleted successfully", null);
+    }    
 
 }
