@@ -21,7 +21,14 @@ public interface TransactionRepo extends JpaRepository<Transaction, UUID> {
         Page<Transaction> findByUserIdAndDateBetween(UUID userId, LocalDateTime start, LocalDateTime end,
                         Pageable pageable);
 
-        Page<Transaction> findByUserIdAndCategory(UUID userId, String category, Pageable pageable);
+        Page<Transaction> findByUserIdAndCategoryIgnoreCase(UUID userId, String category, Pageable pageable);
+
+        Page<Transaction> findByUserIdAndDateBetweenAndCategoryIgnoreCase(
+                        UUID userId,
+                        LocalDateTime start,
+                        LocalDateTime end,
+                        String category,
+                        Pageable pageable);
 
         List<Transaction> findByUserIdAndDateBetween(UUID userId, LocalDateTime start, LocalDateTime end); // for
                                                                                                            // reports
