@@ -24,7 +24,6 @@ public class AiEventListener {
 
     private final AiCategorizationService categorizationService;
     private final AiFraudDetectionService fraudDetectionService;
-    private final AiAdviceService adviceService;
     private final AlertService alertService;
     private final TransactionRepo transactionRepo;
 

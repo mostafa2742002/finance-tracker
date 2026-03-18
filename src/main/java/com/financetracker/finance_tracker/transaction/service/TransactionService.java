@@ -8,6 +8,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import com.financetracker.finance_tracker.ai.entity.TransactionCreatedEvent;
+import com.financetracker.finance_tracker.ai.service.AiEventListener;
 import com.financetracker.finance_tracker.common.response.ApiResponse;
 import com.financetracker.finance_tracker.transaction.dto.TransactionRequest;
 import com.financetracker.finance_tracker.transaction.dto.TransactionResponse;
@@ -22,6 +24,7 @@ import lombok.AllArgsConstructor;
 public class TransactionService {
 
     private final TransactionRepo transactionRepo;
+    private final AiEventListener aiEventListener;
 
     public ApiResponse<TransactionResponse> createTransaction(TransactionRequest request, UUID userId) {
 
@@ -46,6 +49,16 @@ public class TransactionService {
                 .build();
 
         Transaction savedTransaction = transactionRepo.save(transaction);
+
+        aiEventListener.handleTransactionCreated(new TransactionCreatedEvent(
+                this,
+                savedTransaction.getId(),
+                userId,
+                savedTransaction.getAmount(),
+                savedTransaction.getDescription(),
+                savedTransaction.getCategory()
+        ));
+
         TransactionResponse response = TransactionResponse.fromEntity(savedTransaction);
         ApiResponse<TransactionResponse> apiResponse = new ApiResponse<>();
         apiResponse.setSuccess(true);
