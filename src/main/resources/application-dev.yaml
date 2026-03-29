@@ -7,13 +7,12 @@ app:
 
 spring:
   config:
-    # Local-only overrides live in the project root and are ignored by Git.
-    import: optional:file:./application-dev-secrets.yaml
+    import: optional:classpath:application-dev-secrets.yaml
 
   datasource:
     url: jdbc:postgresql://localhost:5432/finance_tracker
     username: postgres
-    password: ${DB_PASSWORD:}
+    # password: ${DB_PASSWORD:}
     driver-class-name: org.postgresql.Driver
 
   data:
@@ -24,7 +23,7 @@ spring:
   ai:
     google:
       genai:
-        api-key: ${GEMINI_API_KEY:}
+        # api-key: ${GEMINI_API_KEY:}
         chat:
           options:
             model: ${GEMINI_MODEL:gemini-2.5-flash}
