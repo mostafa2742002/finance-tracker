@@ -6,8 +6,16 @@ app:
     allowed-origins: http://localhost:3000
 
 spring:
+  config:
+    import: optional:classpath:application-dev.yaml
+
   application:
     name: finance-tracker
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
 
   flyway:
     enabled: true
@@ -19,6 +27,14 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+  ai:
+    google:
+      genai:
+        api-key: ${GEMINI_API_KEY:}
+        chat:
+          options:
+            model: ${GEMINI_MODEL:gemini-1.5-flash}
 
 jwt:
   # dev-safe fallback; override via environment in non-local deployments

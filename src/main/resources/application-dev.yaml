@@ -6,11 +6,27 @@ app:
     allowed-origins: http://localhost:3000,http://127.0.0.1:3000
 
 spring:
+  config:
+    import: optional:classpath:application-dev-secrets.yaml
+
   datasource:
     url: jdbc:postgresql://localhost:5432/finance_tracker
     username: postgres
-    password: postgres123
+    # password: ${DB_PASSWORD:}
     driver-class-name: org.postgresql.Driver
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  ai:
+    google:
+      genai:
+        # api-key: ${GEMINI_API_KEY:}
+        chat:
+          options:
+            model: ${GEMINI_MODEL:gemini-2.5-flash}
 
 jwt:
   secret: bXlTdXBlclNlY3JldEtleUZvckp3dFNpZ25pbmcxMjM0NTY3ODkwMTIzNDU2

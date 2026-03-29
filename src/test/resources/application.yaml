@@ -1,0 +1,14 @@
+spring:
+  ai:
+    model:
+      chat: false
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+jwt:
+  secret: bXlTdXBlclNlY3JldEtleUZvckp3dFNpZ25pbmcxMjM0NTY3ODkwMTIzNDU2
+  expiration: 3600000
+  refresh-expiration: 604800000
