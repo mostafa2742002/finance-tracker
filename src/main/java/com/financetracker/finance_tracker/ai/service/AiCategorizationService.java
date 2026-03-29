@@ -8,6 +8,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
+@ConditionalOnProperty(name = "spring.ai.model.chat", havingValue = "true", matchIfMissing = true)
 public class AiCategorizationService {
 
 	private static final Duration CATEGORY_CACHE_TTL = Duration.ofHours(1);

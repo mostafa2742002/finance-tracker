@@ -3,13 +3,13 @@ package com.financetracker.finance_tracker.transaction.service;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import com.financetracker.finance_tracker.ai.entity.TransactionCreatedEvent;
-import com.financetracker.finance_tracker.ai.service.AiEventListener;
 import com.financetracker.finance_tracker.common.response.ApiResponse;
 import com.financetracker.finance_tracker.transaction.dto.TransactionRequest;
 import com.financetracker.finance_tracker.transaction.dto.TransactionResponse;
@@ -24,7 +24,7 @@ import lombok.AllArgsConstructor;
 public class TransactionService {
 
     private final TransactionRepo transactionRepo;
-    private final AiEventListener aiEventListener;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     public ApiResponse<TransactionResponse> createTransaction(TransactionRequest request, UUID userId) {
 
@@ -50,7 +50,7 @@ public class TransactionService {
 
         Transaction savedTransaction = transactionRepo.save(transaction);
 
-        aiEventListener.handleTransactionCreated(new TransactionCreatedEvent(
+        applicationEventPublisher.publishEvent(new TransactionCreatedEvent(
                 this,
                 savedTransaction.getId(),
                 userId,
