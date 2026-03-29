@@ -32,3 +32,6 @@ build/
 ### VS Code ###
 .vscode/
 AI-Finance-Tracker-CODEX.md
+
+### Local secrets ###
+application-dev-secrets.yaml

@@ -1,7 +1,6 @@
 package com.financetracker.finance_tracker.alert.service;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
