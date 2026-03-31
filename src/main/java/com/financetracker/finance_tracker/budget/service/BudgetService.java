@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import com.financetracker.finance_tracker.alert.entity.Alert.AlertType;
 import com.financetracker.finance_tracker.alert.service.AlertService;
 import com.financetracker.finance_tracker.budget.dto.BudgetRequest;
 import com.financetracker.finance_tracker.budget.dto.BudgetResponse;
@@ -144,9 +145,9 @@ public class BudgetService {
             BigDecimal currentSpending = getCurrentSpending(userId, category, month, year);
             if (currentSpending.compareTo(budget.getLimitAmount().multiply(BigDecimal.valueOf(0.8))) >= 0 &&
                 currentSpending.compareTo(budget.getLimitAmount()) < 0) {
-                alertService.createBudgetAlert(userId, category, currentSpending, budget.getLimitAmount());
+                alertService.createBudgetAlert(userId, category, currentSpending, budget.getLimitAmount(), AlertType.BUDGET_WARNING);
             } else if (currentSpending.compareTo(budget.getLimitAmount()) >= 0) {
-                alertService.createBudgetAlert(userId, category, currentSpending, budget.getLimitAmount());
+                alertService.createBudgetAlert(userId, category, currentSpending, budget.getLimitAmount(), AlertType.OVERSPENDING);
             }
         }
 

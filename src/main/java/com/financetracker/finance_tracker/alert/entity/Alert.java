@@ -24,7 +24,7 @@ public class Alert {
     private UUID userId;
 
     @Column(name = "type", length = 30, nullable = false)
-    private String type; 
+    private AlertType type; 
 
     @Column(name = "message", length = 500, nullable = false)
     private String message;
@@ -38,4 +38,8 @@ public class Alert {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
     
+
+    public enum AlertType {
+        OVERSPENDING, BUDGET_WARNING, FRAUD_DETECTED, AI_ADVICE
+    }
 }
