@@ -3,6 +3,8 @@ package com.financetracker.finance_tracker.alert.entity;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -20,11 +22,12 @@ public class Alert {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private UUID id;
 
-    @Column(name = "user_id" ,nullable = false)
+    @Column(name = "user_id", nullable = false)
     private UUID userId;
 
     @Column(name = "type", length = 30, nullable = false)
-    private AlertType type; 
+    @Enumerated(EnumType.STRING)
+    private AlertType type;
 
     @Column(name = "message", length = 500, nullable = false)
     private String message;
@@ -37,7 +40,6 @@ public class Alert {
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
-    
 
     public enum AlertType {
         OVERSPENDING, BUDGET_WARNING, FRAUD_DETECTED, AI_ADVICE
