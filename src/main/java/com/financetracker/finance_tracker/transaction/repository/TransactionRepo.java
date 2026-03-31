@@ -38,4 +38,8 @@ public interface TransactionRepo extends JpaRepository<Transaction, UUID> {
         @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.userId = :userId AND t.category = :category AND t.date BETWEEN :start AND :end")
         BigDecimal sumAmountByUserIdAndCategoryAndDateBetween(
                         UUID userId, String category, LocalDateTime start, LocalDateTime end); // for budget checking
+                        
+        @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.userId = :userId AND ( t.category = :category OR t.aiCategory = :aicategory ) AND t.date BETWEEN :start AND :end")
+        BigDecimal sumAmountByUserIdAndCategoryOrAICategoryAndDateBetween(
+                        UUID userId, String category, String aicategory, LocalDateTime start, LocalDateTime end); // for budget checking with AI category
 }

@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import com.financetracker.finance_tracker.budget.entity.Budget;
+
 import lombok.Data;
 
 @Data
@@ -20,5 +22,18 @@ public class BudgetResponse {
     private BigDecimal CurrentSpending;
     private BigDecimal RemainingAmount;
     private BigDecimal percentageUsed;
-    
+
+
+    public static BudgetResponse fromEntity(Budget budget) {
+        BudgetResponse response = new BudgetResponse();
+        response.setId(budget.getId());
+        response.setUserId(budget.getUserId());
+        response.setCategory(budget.getCategory());
+        response.setLimitAmount(budget.getLimitAmount());
+        response.setMonth(budget.getMonth());
+        response.setYear(budget.getYear());
+        response.setCreatedAt(budget.getCreatedAt());
+        response.setUpdatedAt(budget.getUpdatedAt());
+        return response;
+    }
 }
