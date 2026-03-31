@@ -31,7 +31,7 @@ public class BudgetService {
     private final AlertService alertService;
     private final RedisTemplate<String, Object> redisTemplate;
 
-    private ApiResponse<BudgetResponse> createOrUpdate(BudgetRequest request, UUID userId) {
+    public ApiResponse<BudgetResponse> createOrUpdate(BudgetRequest request, UUID userId) {
         
         Optional<Budget> existingBudgetOpt = budgetRepository.findByUserIdAndCategoryAndMonthAndYear(
                 userId, request.getCategory(), request.getMonth(), request.getYear());
@@ -75,7 +75,7 @@ public class BudgetService {
         return apiResponse;
     }
 
-    private ApiResponse<List<BudgetResponse>> getBudgetsForMonth(int month, int year, UUID userId) {
+    public ApiResponse<List<BudgetResponse>> getBudgetsForMonth(int month, int year, UUID userId) {
         List<Budget> budgets = budgetRepository.findByUserIdAndMonthAndYear(userId, month, year);
         List<BudgetResponse> responses = budgets.stream()
                 .map(BudgetResponse::fromEntity)
@@ -100,7 +100,7 @@ public class BudgetService {
     }
 
 
-    private BigDecimal getCurrentSpending(UUID userId, String category, int month, int year) {
+    public BigDecimal getCurrentSpending(UUID userId, String category, int month, int year) {
         String redisKey = String.format("spending:%s:%s:%d:%d", userId, category, year, month);
         BigDecimal cachedSpending = (BigDecimal) redisTemplate.opsForValue().get(redisKey);
         if (cachedSpending != null) {
@@ -116,7 +116,7 @@ public class BudgetService {
         return currentSpending;
     }
 
-    private ApiResponse<Void> deleteBudget(UUID budgetId, UUID userId) {
+    public ApiResponse<Void> deleteBudget(UUID budgetId, UUID userId) {
         Optional<Budget> budgetOpt = budgetRepository.findById(budgetId);
         if (budgetOpt.isEmpty() || !budgetOpt.get().getUserId().equals(userId)) {
             ApiResponse<Void> apiResponse = new ApiResponse<>();
@@ -131,7 +131,7 @@ public class BudgetService {
         return apiResponse;
     }
 
-    private void checkBudgetAfterTransaction(UUID userId, String category, BigDecimal amount, LocalDateTime transactionDate){
+    public void checkBudgetAfterTransaction(UUID userId, String category, BigDecimal amount, LocalDateTime transactionDate){
         int month = transactionDate.getMonthValue();
         int year = transactionDate.getYear();
         Optional<Budget> budgetOpt = budgetRepository.findByUserIdAndCategoryAndMonthAndYear(userId, category, month, year);
