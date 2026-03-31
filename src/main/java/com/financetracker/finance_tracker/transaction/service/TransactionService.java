@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import com.financetracker.finance_tracker.ai.entity.TransactionCreatedEvent;
+import com.financetracker.finance_tracker.alert.service.AlertService;
+import com.financetracker.finance_tracker.budget.service.BudgetService;
 import com.financetracker.finance_tracker.common.response.ApiResponse;
 import com.financetracker.finance_tracker.transaction.dto.TransactionRequest;
 import com.financetracker.finance_tracker.transaction.dto.TransactionResponse;
@@ -25,6 +27,7 @@ public class TransactionService {
 
     private final TransactionRepo transactionRepo;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final BudgetService budgetService;
 
     public ApiResponse<TransactionResponse> createTransaction(TransactionRequest request, UUID userId) {
 
@@ -58,6 +61,8 @@ public class TransactionService {
                 savedTransaction.getDescription(),
                 savedTransaction.getCategory()
         ));
+
+        budgetService.checkBudgetAfterTransaction(userId, savedTransaction.getCategory(), savedTransaction.getAmount(), savedTransaction.getDate());
 
         TransactionResponse response = TransactionResponse.fromEntity(savedTransaction);
         ApiResponse<TransactionResponse> apiResponse = new ApiResponse<>();
