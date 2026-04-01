@@ -1,0 +1,8 @@
+target
+.git
+.gitignore
+.codex
+.idea
+.vscode
+*.log
+src/main/resources/application-dev-secrets.yaml
