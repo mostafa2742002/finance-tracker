@@ -12,6 +12,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import com.financetracker.finance_tracker.common.metrics.AppMetrics;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Service
@@ -36,10 +38,12 @@ public class AiCategorizationService {
 
 	private final ChatClient chatClient;
 	private final StringRedisTemplate redisTemplate;
+    private final AppMetrics appMetrics;
 
-	public AiCategorizationService(ChatClient.Builder chatClientBuilder, StringRedisTemplate redisTemplate) {
+	public AiCategorizationService(ChatClient.Builder chatClientBuilder, StringRedisTemplate redisTemplate, AppMetrics appMetrics) {
 		this.chatClient = chatClientBuilder.build();
 		this.redisTemplate = redisTemplate;
+        this.appMetrics = appMetrics;
 	}
 
 	public String categorize(String description, BigDecimal amount) {
@@ -48,14 +52,24 @@ public class AiCategorizationService {
 
 		String cachedCategory = getCachedCategory(cacheKey);
 		if (cachedCategory != null) {
+            appMetrics.incrementCounter("ai.categorization.cache", "result", "hit");
+            appMetrics.incrementCounter("ai.categorization.completed", "source", "cache", "category", cachedCategory.toLowerCase(Locale.ROOT));
 			return cachedCategory;
 		}
+        appMetrics.incrementCounter("ai.categorization.cache", "result", "miss");
 
 		String prompt = buildPrompt(normalizedDescription, amount);
-		String aiResponse = chatClient.prompt().user(prompt).call().content();
+        long startNanos = System.nanoTime();
+		String aiResponse;
+        try {
+            aiResponse = chatClient.prompt().user(prompt).call().content();
+        } finally {
+            appMetrics.recordDuration("ai.categorization.latency", startNanos);
+        }
 
 		String category = normalizeCategory(aiResponse);
 		cacheCategory(cacheKey, category);
+        appMetrics.incrementCounter("ai.categorization.completed", "source", "ai", "category", category.toLowerCase(Locale.ROOT));
 		return category;
 	}
 
