@@ -21,6 +21,9 @@ import com.financetracker.finance_tracker.common.exception.UserNotFoundException
 import com.financetracker.finance_tracker.common.response.ApiResponse;
 import com.financetracker.finance_tracker.user.repository.UserRepo;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -28,12 +31,19 @@ import lombok.RequiredArgsConstructor;
 @Validated
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/budgets")
+@Tag(name = "Budgets", description = "Operations for creating, updating, listing, and deleting user budgets")
 public class BudgetController {
 
     private final BudgetService budgetService;
     private final UserRepo userRepo;
 
     @PostMapping
+    @Operation(summary = "Create or update a budget", description = "Creates a new budget or updates an existing one for the authenticated user")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Budget saved successfully"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid budget request"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     public ResponseEntity<ApiResponse<BudgetResponse>> createOrUpdateBudget(@Valid @RequestBody BudgetRequest request,
                 Authentication authentication) {
         String email = authentication.getName();
@@ -46,6 +56,12 @@ public class BudgetController {
     }
 
     @DeleteMapping("/{budgetId}")
+    @Operation(summary = "Delete a budget", description = "Deletes a budget owned by the authenticated user")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Budget deleted successfully"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Budget not found")
+    })
     public ResponseEntity<ApiResponse<Void>> deleteBudget(@PathVariable String budgetId, Authentication authentication) {
         String email = authentication.getName();
         var user = userRepo.findByEmail(email);
@@ -57,6 +73,11 @@ public class BudgetController {
     }
 
     @GetMapping("/{month}/{year}")
+    @Operation(summary = "List budgets for a month", description = "Returns all budgets for a specific month and year for the authenticated user")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Budgets fetched successfully"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     public ResponseEntity<ApiResponse<List<BudgetResponse>>> getBudgetsForMonth(
             @PathVariable int month,
             @PathVariable int year,
