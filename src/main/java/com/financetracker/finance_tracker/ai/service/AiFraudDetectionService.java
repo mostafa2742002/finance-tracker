@@ -8,7 +8,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 import com.financetracker.finance_tracker.common.metrics.AppMetrics;
@@ -21,7 +22,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
-@ConditionalOnProperty(name = "spring.ai.model.chat", havingValue = "true", matchIfMissing = true)
 public class AiFraudDetectionService {
 
     private final ChatClient chatClient;
@@ -33,8 +33,9 @@ public class AiFraudDetectionService {
     private static final long REPEAT_TIME_MINUTES = 10;
     private static final BigDecimal FRAUD_SCORE_THRESHOLD = new BigDecimal("0.75");
 
-    public AiFraudDetectionService(ChatClient.Builder chatClientBuilder, TransactionRepo transactionRepo, AppMetrics appMetrics) {
-        this.chatClient = chatClientBuilder.build();
+    public AiFraudDetectionService(ObjectProvider<ChatModel> chatModelProvider, TransactionRepo transactionRepo, AppMetrics appMetrics) {
+        ChatModel chatModel = chatModelProvider.getIfAvailable();
+        this.chatClient = chatModel != null ? ChatClient.create(chatModel) : null;
         this.transactionRepo = transactionRepo;
         this.appMetrics = appMetrics;
     }
@@ -121,6 +122,12 @@ public class AiFraudDetectionService {
     }
 
     private String callAiModel(String prompt) {
+        if (chatClient == null) {
+            appMetrics.incrementCounter("ai.fraud.ai_call", "result", "fallback");
+            log.warn("AI chat model is not available; defaulting fraud analysis to low score");
+            return "FRAUD_SCORE: 0.2 | REASON: AI model is not available";
+        }
+
         long startNanos = System.nanoTime();
         try {
             return chatClient.prompt().user(prompt).call().content();

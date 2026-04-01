@@ -3,7 +3,8 @@ package com.financetracker.finance_tracker.ai.service;
 import java.math.BigDecimal;
 
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 import com.financetracker.finance_tracker.common.metrics.AppMetrics;
@@ -12,14 +13,14 @@ import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
-@ConditionalOnProperty(name = "spring.ai.model.chat", havingValue = "true", matchIfMissing = true)
 public class AiAdviceService {
 
     private final ChatClient chatClient;
     private final AppMetrics appMetrics;
 
-    public AiAdviceService(ChatClient.Builder chatClientBuilder, AppMetrics appMetrics) {
-        this.chatClient = chatClientBuilder.build();
+    public AiAdviceService(ObjectProvider<ChatModel> chatModelProvider, AppMetrics appMetrics) {
+        ChatModel chatModel = chatModelProvider.getIfAvailable();
+        this.chatClient = chatModel != null ? ChatClient.create(chatModel) : null;
         this.appMetrics = appMetrics;
     }
 
@@ -33,6 +34,12 @@ public class AiAdviceService {
                 + " this month, which is " + safeOverBudget
                 + "% over their budget. Give one specific, actionable tip to save money in this category. "
                 + "Be concise (1-2 sentences).";
+
+        if (chatClient == null) {
+            appMetrics.incrementCounter("ai.advice.generated", "result", "fallback");
+            log.warn("AI chat model is not available; returning fallback advice");
+            return "Review recent spending in this category and set a smaller weekly cap to stay within budget.";
+        }
 
         long startNanos = System.nanoTime();
         String advice;

@@ -3,7 +3,6 @@ package com.financetracker.finance_tracker.ai.service;
 import java.time.LocalDateTime;
 
 import org.springframework.context.event.EventListener;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.annotation.Async;
@@ -24,7 +23,6 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @Slf4j
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "spring.ai.model.chat", havingValue = "true", matchIfMissing = true)
 public class AiEventListener {
 
     private final AiCategorizationService categorizationService;
@@ -33,6 +31,11 @@ public class AiEventListener {
     private final TransactionRepo transactionRepo;
     private final AppMetrics appMetrics;
     private final RateLimitService rateLimitService;
+
+    @jakarta.annotation.PostConstruct
+    void logInitialization() {
+        log.info("AI event listener initialized and ready to process transaction events");
+    }
 
     @EventListener
     @Async

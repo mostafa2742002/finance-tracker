@@ -8,7 +8,8 @@ import java.util.Locale;
 import java.util.Map;
 
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -18,7 +19,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
-@ConditionalOnProperty(name = "spring.ai.model.chat", havingValue = "true", matchIfMissing = true)
 public class AiCategorizationService {
 
 	private static final Duration CATEGORY_CACHE_TTL = Duration.ofHours(1);
@@ -40,8 +40,9 @@ public class AiCategorizationService {
 	private final StringRedisTemplate redisTemplate;
     private final AppMetrics appMetrics;
 
-	public AiCategorizationService(ChatClient.Builder chatClientBuilder, StringRedisTemplate redisTemplate, AppMetrics appMetrics) {
-		this.chatClient = chatClientBuilder.build();
+	public AiCategorizationService(ObjectProvider<ChatModel> chatModelProvider, StringRedisTemplate redisTemplate, AppMetrics appMetrics) {
+		ChatModel chatModel = chatModelProvider.getIfAvailable();
+		this.chatClient = chatModel != null ? ChatClient.create(chatModel) : null;
 		this.redisTemplate = redisTemplate;
         this.appMetrics = appMetrics;
 	}
@@ -57,6 +58,12 @@ public class AiCategorizationService {
 			return cachedCategory;
 		}
         appMetrics.incrementCounter("ai.categorization.cache", "result", "miss");
+
+		if (chatClient == null) {
+            appMetrics.incrementCounter("ai.categorization.completed", "source", "fallback", "category", "other");
+            log.warn("AI chat model is not available; defaulting category to Other");
+            return "Other";
+        }
 
 		String prompt = buildPrompt(normalizedDescription, amount);
         long startNanos = System.nanoTime();

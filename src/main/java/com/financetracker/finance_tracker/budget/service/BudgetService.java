@@ -130,7 +130,7 @@ public class BudgetService {
 
     public BigDecimal getCurrentSpending(UUID userId, String category, int month, int year) {
         String redisKey = String.format("spending:%s:%s:%d:%d", userId, category, year, month);
-        BigDecimal cachedSpending = (BigDecimal) redisTemplate.opsForValue().get(redisKey);
+        BigDecimal cachedSpending = convertToBigDecimal(redisTemplate.opsForValue().get(redisKey));
         if (cachedSpending != null) {
             appMetrics.incrementCounter("budgets.spending.cache", "result", "hit");
             return cachedSpending;
@@ -142,8 +142,48 @@ public class BudgetService {
         BigDecimal currentSpending = transactionRepo.sumAmountByUserIdAndCategoryOrAICategoryAndDateBetween(
                 userId, category, category, startOfMonth, endOfMonth);
 
+        if (currentSpending == null) {
+            currentSpending = BigDecimal.ZERO;
+        }
+
         redisTemplate.opsForValue().set(redisKey, currentSpending);
         return currentSpending;
+    }
+
+    private BigDecimal convertToBigDecimal(Object value) {
+        if (value == null) {
+            return null;
+        }
+
+        if (value instanceof BigDecimal bigDecimal) {
+            return bigDecimal;
+        }
+
+        if (value instanceof Integer integerValue) {
+            return BigDecimal.valueOf(integerValue.longValue());
+        }
+
+        if (value instanceof Long longValue) {
+            return BigDecimal.valueOf(longValue);
+        }
+
+        if (value instanceof Double doubleValue) {
+            return BigDecimal.valueOf(doubleValue);
+        }
+
+        if (value instanceof Float floatValue) {
+            return BigDecimal.valueOf(floatValue.doubleValue());
+        }
+
+        if (value instanceof Number numberValue) {
+            return BigDecimal.valueOf(numberValue.doubleValue());
+        }
+
+        if (value instanceof String stringValue && !stringValue.isBlank()) {
+            return new BigDecimal(stringValue);
+        }
+
+        throw new IllegalStateException("Unsupported cached spending value type: " + value.getClass().getName());
     }
 
     public ApiResponse<Void> deleteBudget(UUID budgetId, UUID userId) {
