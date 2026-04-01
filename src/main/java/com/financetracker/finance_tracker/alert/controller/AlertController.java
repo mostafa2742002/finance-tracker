@@ -23,17 +23,26 @@ import com.financetracker.finance_tracker.common.response.ApiResponse;
 import com.financetracker.finance_tracker.user.entity.User;
 import com.financetracker.finance_tracker.user.repository.UserRepo;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/v1/alerts")
 @RequiredArgsConstructor
+@Tag(name = "Alerts", description = "Operations for listing alerts and marking them as read")
 public class AlertController {
 
     private final AlertService alertService;
     private final UserRepo userRepo;
 
     @GetMapping
+    @Operation(summary = "List alerts", description = "Returns paginated alerts for the authenticated user with an optional read filter")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Alerts fetched successfully"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     public ResponseEntity<ApiResponse<Page<AlertResponse>>> getAlerts(
             @RequestParam(required = false) Boolean isRead,
             @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
@@ -45,6 +54,11 @@ public class AlertController {
     }
 
     @GetMapping("/count/unread")
+    @Operation(summary = "Get unread alerts count", description = "Returns the unread alert count for the authenticated user")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Unread count fetched successfully"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     public ResponseEntity<ApiResponse<Map<String, Long>>> getUnreadCount(Authentication authentication) {
         UUID userId = getUserIdFromAuth(authentication);
         long unreadCount = alertService.getUnreadCount(userId);
@@ -53,6 +67,12 @@ public class AlertController {
     }
 
     @PostMapping("/{id}/read")
+    @Operation(summary = "Mark alert as read", description = "Marks a single alert as read for the authenticated user")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Alert marked as read"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Alert not found")
+    })
     public ResponseEntity<ApiResponse<Void>> markAsRead(
             @PathVariable UUID id,
             Authentication authentication) {
@@ -63,6 +83,11 @@ public class AlertController {
     }
 
     @PostMapping("/read-all")
+    @Operation(summary = "Mark all alerts as read", description = "Marks all alerts as read for the authenticated user")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "All alerts marked as read"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     public ResponseEntity<ApiResponse<Map<String, Integer>>> markAllAsRead(Authentication authentication) {
         UUID userId = getUserIdFromAuth(authentication);
         int updated = alertService.markAllAsRead(userId);
