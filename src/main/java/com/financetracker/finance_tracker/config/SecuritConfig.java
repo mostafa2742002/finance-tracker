@@ -49,7 +49,7 @@ public class SecuritConfig {
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/**", "/auth/**", "/actuator/health", "/ws/**",
-                                "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                                "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**","/actuator/metrics","/actuator/metrics/**").permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
