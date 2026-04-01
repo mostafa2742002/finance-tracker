@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import com.financetracker.finance_tracker.ai.entity.TransactionCreatedEvent;
 import com.financetracker.finance_tracker.ai.service.AiFraudDetectionService.FraudAssessment;
 import com.financetracker.finance_tracker.alert.service.AlertService;
+import com.financetracker.finance_tracker.common.metrics.AppMetrics;
 import com.financetracker.finance_tracker.transaction.entity.Transaction;
 import com.financetracker.finance_tracker.transaction.repository.TransactionRepo;
 
@@ -28,11 +29,14 @@ public class AiEventListener {
     private final AiFraudDetectionService fraudDetectionService;
     private final AlertService alertService;
     private final TransactionRepo transactionRepo;
+    private final AppMetrics appMetrics;
 
     @EventListener
     @Async
     @Retryable(maxAttempts = 3, backoff = @Backoff(delay = 1000))
     public void handleTransactionCreated(TransactionCreatedEvent event) {
+        long startNanos = System.nanoTime();
+        appMetrics.incrementAiEventsInFlight();
         log.info("Processing AI event for transaction {} of user {}", event.getTransactionId(), event.getUserId());
 
         Transaction transaction = transactionRepo.findById(event.getTransactionId())
@@ -56,6 +60,7 @@ public class AiEventListener {
             transaction.setFraudReason(fraudAssessment.getReason());
 
             if (fraudAssessment.isFraud()) {
+                appMetrics.incrementCounter("ai.fraud.detected");
                 alertService.createFraudAlert(
                         event.getUserId(),
                         event.getTransactionId(),
@@ -66,15 +71,20 @@ public class AiEventListener {
             transaction.setAiProcessed(true);
             transaction.setUpdatedAt(LocalDateTime.now());
             transactionRepo.save(transaction);
+            appMetrics.incrementCounter("ai.events.processed", "status", "success");
 
             log.info("AI processing completed for transaction {}: category={}, fraud={}",
                     event.getTransactionId(), aiCategory, fraudAssessment.isFraud());
 
         } catch (Exception ex) {
+            appMetrics.incrementCounter("ai.events.processed", "status", "failure");
             log.error("Error processing AI event for transaction {}", event.getTransactionId(), ex);
             transaction.setAiProcessed(false);
             transactionRepo.save(transaction);
             throw new RuntimeException("AI event processing failed", ex);
+        } finally {
+            appMetrics.recordDuration("ai.event.processing.latency", startNanos);
+            appMetrics.decrementAiEventsInFlight();
         }
     }
 }

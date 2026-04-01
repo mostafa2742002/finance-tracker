@@ -11,6 +11,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
+import com.financetracker.finance_tracker.common.metrics.AppMetrics;
 import com.financetracker.finance_tracker.transaction.entity.Transaction;
 import com.financetracker.finance_tracker.transaction.repository.TransactionRepo;
 
@@ -25,26 +26,34 @@ public class AiFraudDetectionService {
 
     private final ChatClient chatClient;
     private final TransactionRepo transactionRepo;
+    private final AppMetrics appMetrics;
 
     private static final int MONTHS_LOOKBACK = 3;
     private static final BigDecimal MULTIPLIER_THRESHOLD = new BigDecimal("3.0");
     private static final long REPEAT_TIME_MINUTES = 10;
     private static final BigDecimal FRAUD_SCORE_THRESHOLD = new BigDecimal("0.75");
 
-    public AiFraudDetectionService(ChatClient.Builder chatClientBuilder, TransactionRepo transactionRepo) {
+    public AiFraudDetectionService(ChatClient.Builder chatClientBuilder, TransactionRepo transactionRepo, AppMetrics appMetrics) {
         this.chatClient = chatClientBuilder.build();
         this.transactionRepo = transactionRepo;
+        this.appMetrics = appMetrics;
     }
 
     public FraudAssessment analyze(UUID userId, String category, BigDecimal amount, LocalDateTime transactionDate) {
+        long startNanos = System.nanoTime();
         BigDecimal average = calculateCategoryAverage(userId, category);
         boolean suspiciousByRules = checkRuleBasedSuspicion(userId, category, amount, average, transactionDate);
+        if (suspiciousByRules) {
+            appMetrics.incrementCounter("ai.fraud.rule.flagged");
+        }
 
         String aiPrompt = buildPrompt(category, average, amount);
         String aiResponse = callAiModel(aiPrompt);
         FraudScore parsed = parseAiResponse(aiResponse);
 
         boolean isFraud = suspiciousByRules || parsed.score.compareTo(FRAUD_SCORE_THRESHOLD) > 0;
+        appMetrics.incrementCounter("ai.fraud.analyzed", "result", isFraud ? "fraud" : "clear");
+        appMetrics.recordDuration("ai.fraud.latency", startNanos);
 
         return FraudAssessment.builder()
                 .score(parsed.score)
@@ -112,11 +121,15 @@ public class AiFraudDetectionService {
     }
 
     private String callAiModel(String prompt) {
+        long startNanos = System.nanoTime();
         try {
             return chatClient.prompt().user(prompt).call().content();
         } catch (Exception ex) {
+            appMetrics.incrementCounter("ai.fraud.ai_call", "result", "fallback");
             log.warn("AI fraud detection call failed; defaulting to low score", ex);
             return "FRAUD_SCORE: 0.2 | REASON: Could not analyze due to system error";
+        } finally {
+            appMetrics.recordDuration("ai.fraud.ai_call.latency", startNanos);
         }
     }
 
