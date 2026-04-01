@@ -21,9 +21,11 @@ import com.financetracker.finance_tracker.common.response.ApiResponse;
 import com.financetracker.finance_tracker.transaction.repository.TransactionRepo;
 
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @AllArgsConstructor
+@Slf4j
 public class BudgetService {
 
     private final BudgetRepository budgetRepository;
@@ -33,6 +35,9 @@ public class BudgetService {
 
     public ApiResponse<BudgetResponse> createOrUpdate(BudgetRequest request, UUID userId) {
         
+        log.info("Creating/updating budget for user {}: category={}, month={}, year={}, limitAmount={}",
+                userId, request.getCategory(), request.getMonth(), request.getYear(), request.getLimitAmount());
+
         Optional<Budget> existingBudgetOpt = budgetRepository.findByUserIdAndCategoryAndMonthAndYear(
                 userId, request.getCategory(), request.getMonth(), request.getYear());
 
@@ -72,10 +77,16 @@ public class BudgetService {
         apiResponse.setSuccess(true);
         apiResponse.setData(response);
         
+        log.info("Budget for user {} saved successfully: budgetId={}, category={}, month={}, year={}, limitAmount={}",
+                userId, savedBudget.getId(), savedBudget.getCategory(), savedBudget.getMonth(), savedBudget.getYear(), savedBudget.getLimitAmount());
+
         return apiResponse;
     }
 
     public ApiResponse<List<BudgetResponse>> getBudgetsForMonth(int month, int year, UUID userId) {
+        
+        log.info("Retrieving budgets for user {} for month {} and year {}", userId, month, year);
+
         List<Budget> budgets = budgetRepository.findByUserIdAndMonthAndYear(userId, month, year);
         List<BudgetResponse> responses = budgets.stream()
                 .map(BudgetResponse::fromEntity)
@@ -95,6 +106,8 @@ public class BudgetService {
         ApiResponse<List<BudgetResponse>> apiResponse = new ApiResponse<>();
         apiResponse.setSuccess(true);
         apiResponse.setData(responses);
+
+        log.info("Retrieved {} budgets for user {} for month {} and year {}", responses.size(), userId, month, year);
         
         return apiResponse;
     }

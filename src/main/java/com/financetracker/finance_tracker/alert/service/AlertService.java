@@ -28,6 +28,9 @@ public class AlertService {
 
     @Transactional
     public AlertResponse createAlert(UUID userId, AlertType type, String message, UUID transactionId) {
+        log.info("Creating alert for user {}: type={}, message={}, transactionId={}",
+                userId, type, message, transactionId);
+
         Alert alert = new Alert();
         alert.setUserId(userId);
         alert.setType(type);
@@ -39,6 +42,8 @@ public class AlertService {
         Alert saved = alertRepository.save(alert);
         AlertResponse response = toResponse(saved);
         alertPublisher.pushAlert(userId, response);
+
+        log.info("Alert created and published for user {}: alertId={}, type={}", userId, saved.getId(), type);
 
         return response;
     }
@@ -76,6 +81,9 @@ public class AlertService {
     }
 
     public Page<AlertResponse> getUserAlerts(UUID userId, Boolean isRead, Pageable pageable) {
+        log.info("Fetching alerts for user {}: isRead={}, page={}, size={}",
+                userId, isRead, pageable.getPageNumber(), pageable.getPageSize());
+                
         Page<Alert> alertsPage = isRead == null
                 ? alertRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable)
                 : alertRepository.findByUserIdAndIsRead(userId, isRead, pageable);
@@ -85,6 +93,8 @@ public class AlertService {
 
     @Transactional
     public void markAsRead(UUID alertId, UUID userId) {
+        log.info("Marking alert {} as read for user {}", alertId, userId);
+
         Alert alert = alertRepository.findByIdAndUserId(alertId, userId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
@@ -96,10 +106,12 @@ public class AlertService {
 
     @Transactional
     public int markAllAsRead(UUID userId) {
+        log.info("Marking all alerts as read for user {}", userId);
         return alertRepository.markAllAsReadByUserId(userId);
     }
 
     public long getUnreadCount(UUID userId) {
+        log.info("Getting unread alert count for user {}", userId);
         return alertRepository.countByUserIdAndIsReadFalse(userId);
     }
 

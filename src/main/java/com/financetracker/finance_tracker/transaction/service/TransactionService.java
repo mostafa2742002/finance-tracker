@@ -19,9 +19,11 @@ import com.financetracker.finance_tracker.transaction.repository.TransactionRepo
 
 import jakarta.validation.ValidationException;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @AllArgsConstructor
+@Slf4j
 public class TransactionService {
 
     private final TransactionRepo transactionRepo;
@@ -29,6 +31,9 @@ public class TransactionService {
     private final BudgetService budgetService;
 
     public ApiResponse<TransactionResponse> createTransaction(TransactionRequest request, UUID userId) {
+
+        log.info("Creating transaction for user {}: amount={}, description='{}', category={}, type={}, date={}, clientId={}",
+                userId, request.getAmount(), request.getDescription(), request.getCategory(), request.getType(), request.getDate(), request.getClientId());
 
         if (transactionRepo.findByClientId(request.getClientId()).isPresent()) {
             Transaction existingTransaction = transactionRepo.findByClientId(request.getClientId()).get();
@@ -68,6 +73,10 @@ public class TransactionService {
         apiResponse.setSuccess(true);
         apiResponse.setMessage("Transaction created successfully");
         apiResponse.setData(response);
+
+        log.info("Transaction created successfully for user {}: transactionId={}, amount={}, category={}",
+                userId, savedTransaction.getId(), savedTransaction.getAmount(), savedTransaction.getCategory());
+
         return apiResponse;
     }
 
@@ -77,6 +86,9 @@ public class TransactionService {
             LocalDateTime endDate,
             String category,
             Pageable pageable) {
+
+        log.info("Fetching transactions for user {} with filters - startDate: {}, endDate: {}, category: {}, page: {}, size: {}",
+                userId, startDate, endDate, category, pageable.getPageNumber(), pageable.getPageSize());
 
         boolean hasDateFilter = startDate != null || endDate != null;
         boolean hasCategoryFilter = StringUtils.hasText(category);
@@ -108,10 +120,16 @@ public class TransactionService {
         }
 
         Page<TransactionResponse> responsePage = transactions.map(TransactionResponse::fromEntity);
+
+        log.info("Fetched {} transactions for user {} with applied filters", responsePage.getNumberOfElements(), userId);
+
         return new ApiResponse<>(true, "Transactions fetched successfully", responsePage);
     }
 
     public ApiResponse<TransactionResponse> getTransactionById(UUID transactionId, UUID userId) {
+        
+        log.info("Fetching transaction by ID for user {}: transactionId={}", userId, transactionId);
+
         Transaction transaction = transactionRepo.findById(transactionId)
                 .orElseThrow(() -> new RuntimeException("Transaction not found"));
 
@@ -124,6 +142,10 @@ public class TransactionService {
     }
 
     public ApiResponse<TransactionResponse> updateTransaction(UUID transactionId, TransactionRequest request, UUID userId) {
+        
+        log.info("Updating transaction for user {}: transactionId={}, amount={}, description='{}', category={}, type={}, date={}",
+                userId, transactionId, request.getAmount(), request.getDescription(), request.getCategory(), request.getType(), request.getDate());
+
         Transaction transaction = transactionRepo.findById(transactionId)
                 .orElseThrow(() -> new RuntimeException("Transaction not found"));
 
@@ -139,11 +161,18 @@ public class TransactionService {
 
         Transaction updatedTransaction = transactionRepo.save(transaction);
         TransactionResponse response = TransactionResponse.fromEntity(updatedTransaction);
+
+        log.info("Transaction updated successfully for user {}: transactionId={}, amount={}, category={}",
+                userId, updatedTransaction.getId(), updatedTransaction.getAmount(), updatedTransaction.getCategory());
+
         return new ApiResponse<>(true, "Transaction updated successfully", response);
 
     }
 
     public ApiResponse<Void> deleteTransaction(UUID transactionId, UUID userId) {
+        
+        log.info("Deleting transaction for user {}: transactionId={}", userId, transactionId);
+
         Transaction transaction = transactionRepo.findById(transactionId)
                 .orElseThrow(() -> new RuntimeException("Transaction not found"));
 
@@ -152,6 +181,9 @@ public class TransactionService {
         }
 
         transactionRepo.delete(transaction);
+
+        log.info("Transaction deleted successfully for user {}: transactionId={}", userId, transactionId);
+
         return new ApiResponse<>(true, "Transaction deleted successfully", null);
     }    
 
