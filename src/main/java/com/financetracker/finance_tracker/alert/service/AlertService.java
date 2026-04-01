@@ -14,6 +14,7 @@ import com.financetracker.finance_tracker.alert.dto.AlertResponse;
 import com.financetracker.finance_tracker.alert.entity.Alert;
 import com.financetracker.finance_tracker.alert.entity.Alert.AlertType;
 import com.financetracker.finance_tracker.alert.repository.AlertRepository;
+import com.financetracker.finance_tracker.common.metrics.AppMetrics;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,27 +26,34 @@ public class AlertService {
 
     private final AlertRepository alertRepository;
     private final AlertPublisher alertPublisher;
+    private final AppMetrics appMetrics;
 
     @Transactional
     public AlertResponse createAlert(UUID userId, AlertType type, String message, UUID transactionId) {
-        log.info("Creating alert for user {}: type={}, message={}, transactionId={}",
-                userId, type, message, transactionId);
+        long startNanos = System.nanoTime();
+        try {
+            log.info("Creating alert for user {}: type={}, message={}, transactionId={}",
+                    userId, type, message, transactionId);
 
-        Alert alert = new Alert();
-        alert.setUserId(userId);
-        alert.setType(type);
-        alert.setMessage(message);
-        alert.setTransactionId(transactionId);
-        alert.setRead(false);
-        alert.setCreatedAt(java.time.LocalDateTime.now());
+            Alert alert = new Alert();
+            alert.setUserId(userId);
+            alert.setType(type);
+            alert.setMessage(message);
+            alert.setTransactionId(transactionId);
+            alert.setRead(false);
+            alert.setCreatedAt(java.time.LocalDateTime.now());
 
-        Alert saved = alertRepository.save(alert);
-        AlertResponse response = toResponse(saved);
-        alertPublisher.pushAlert(userId, response);
+            Alert saved = alertRepository.save(alert);
+            AlertResponse response = toResponse(saved);
+            alertPublisher.pushAlert(userId, response);
+            appMetrics.incrementCounter("alerts.created", "type", type.name().toLowerCase());
 
-        log.info("Alert created and published for user {}: alertId={}, type={}", userId, saved.getId(), type);
+            log.info("Alert created and published for user {}: alertId={}, type={}", userId, saved.getId(), type);
 
-        return response;
+            return response;
+        } finally {
+            appMetrics.recordDuration("alerts.create.latency", startNanos);
+        }
     }
 
     public void createFraudAlert(UUID userId, UUID transactionId, BigDecimal fraudScore, String fraudReason) {
@@ -81,14 +89,20 @@ public class AlertService {
     }
 
     public Page<AlertResponse> getUserAlerts(UUID userId, Boolean isRead, Pageable pageable) {
-        log.info("Fetching alerts for user {}: isRead={}, page={}, size={}",
-                userId, isRead, pageable.getPageNumber(), pageable.getPageSize());
-                
-        Page<Alert> alertsPage = isRead == null
-                ? alertRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable)
-                : alertRepository.findByUserIdAndIsRead(userId, isRead, pageable);
+        long startNanos = System.nanoTime();
+        try {
+            log.info("Fetching alerts for user {}: isRead={}, page={}, size={}",
+                    userId, isRead, pageable.getPageNumber(), pageable.getPageSize());
+                    
+            Page<Alert> alertsPage = isRead == null
+                    ? alertRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable)
+                    : alertRepository.findByUserIdAndIsRead(userId, isRead, pageable);
+            appMetrics.incrementCounter("alerts.fetched", "filter", isRead == null ? "all" : isRead ? "read" : "unread");
 
-        return alertsPage.map(this::toResponse);
+            return alertsPage.map(this::toResponse);
+        } finally {
+            appMetrics.recordDuration("alerts.fetch.latency", startNanos);
+        }
     }
 
     @Transactional
@@ -102,12 +116,15 @@ public class AlertService {
 
         alert.setRead(true);
         alertRepository.save(alert);
+        appMetrics.incrementCounter("alerts.marked_read");
     }
 
     @Transactional
     public int markAllAsRead(UUID userId) {
         log.info("Marking all alerts as read for user {}", userId);
-        return alertRepository.markAllAsReadByUserId(userId);
+        int updated = alertRepository.markAllAsReadByUserId(userId);
+        appMetrics.incrementCounter("alerts.mark_all_read");
+        return updated;
     }
 
     public long getUnreadCount(UUID userId) {
