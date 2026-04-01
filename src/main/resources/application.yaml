@@ -6,11 +6,11 @@ app:
     allowed-origins: http://localhost:3000
 
 spring:
-  config:
-    import: classpath:application-dev.yaml
-
   application:
     name: finance-tracker
+
+  profiles:
+    default: dev
 
   data:
     redis:
