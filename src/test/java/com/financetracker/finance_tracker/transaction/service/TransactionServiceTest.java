@@ -27,6 +27,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import com.financetracker.finance_tracker.common.response.ApiResponse;
+import com.financetracker.finance_tracker.budget.service.BudgetService;
+import com.financetracker.finance_tracker.common.metrics.AppMetrics;
 import com.financetracker.finance_tracker.transaction.dto.TransactionResponse;
 import com.financetracker.finance_tracker.transaction.entity.Transaction;
 import com.financetracker.finance_tracker.transaction.repository.TransactionRepo;
@@ -41,6 +43,12 @@ class TransactionServiceTest {
 
     @Mock
     private ApplicationEventPublisher applicationEventPublisher;
+
+    @Mock
+    private BudgetService budgetService;
+
+    @Mock
+    private AppMetrics appMetrics;
 
     @InjectMocks
     private TransactionService transactionService;
