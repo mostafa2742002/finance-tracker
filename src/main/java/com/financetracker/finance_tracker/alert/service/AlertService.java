@@ -54,8 +54,6 @@ public class AlertService {
                         transactionId, fraudScore, fraudReason),
                 transactionId);
 
-        // TODO: Send notification to user (email, SMS, push notification)
-        // notificationService.sendFraudAlert(user, fraudScore, fraudReason);
     }
 
     public void createBudgetAlert(UUID userId, String category, BigDecimal currentSpending, BigDecimal budgetLimit,

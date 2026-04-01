@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import com.financetracker.finance_tracker.ai.entity.TransactionCreatedEvent;
-import com.financetracker.finance_tracker.alert.service.AlertService;
 import com.financetracker.finance_tracker.budget.service.BudgetService;
 import com.financetracker.finance_tracker.common.response.ApiResponse;
 import com.financetracker.finance_tracker.transaction.dto.TransactionRequest;

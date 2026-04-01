@@ -19,7 +19,6 @@ import com.financetracker.finance_tracker.budget.entity.Budget;
 import com.financetracker.finance_tracker.budget.repository.BudgetRepository;
 import com.financetracker.finance_tracker.common.response.ApiResponse;
 import com.financetracker.finance_tracker.transaction.repository.TransactionRepo;
-import com.google.protobuf.Api;
 
 import lombok.AllArgsConstructor;
 
