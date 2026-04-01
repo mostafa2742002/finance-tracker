@@ -18,6 +18,10 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.financetracker.finance_tracker.common.ratelimit.RateLimitDecision;
+import com.financetracker.finance_tracker.common.ratelimit.RateLimitResponseWriter;
+import com.financetracker.finance_tracker.common.ratelimit.RateLimitService;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,13 +33,19 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtUtils jwtUtils;
     private final UserDetailsService userDetailsService;
     private final AuthenticationEntryPoint authenticationEntryPoint;
+    private final RateLimitService rateLimitService;
+    private final RateLimitResponseWriter rateLimitResponseWriter;
 
     public JwtAuthFilter(JwtUtils jwtUtils,
             UserDetailsService userDetailsService,
-            AuthenticationEntryPoint authenticationEntryPoint) {
+            AuthenticationEntryPoint authenticationEntryPoint,
+            RateLimitService rateLimitService,
+            RateLimitResponseWriter rateLimitResponseWriter) {
         this.jwtUtils = jwtUtils;
         this.userDetailsService = userDetailsService;
         this.authenticationEntryPoint = authenticationEntryPoint;
+        this.rateLimitService = rateLimitService;
+        this.rateLimitResponseWriter = rateLimitResponseWriter;
     }
 
     @Override
@@ -60,6 +70,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 Claims claims = jwtUtils.extractAllClaims(token);
                 String email = claims.getSubject();
                 if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                    RateLimitDecision rateLimitDecision = rateLimitService.checkGeneralRequestLimit(email);
+                    if (!rateLimitDecision.allowed()) {
+                        rateLimitResponseWriter.writeTooManyRequests(
+                                response,
+                                "Too many requests. Please try again later.",
+                                rateLimitDecision.retryAfterSeconds());
+                        return;
+                    }
                     UserDetails userDetails = userDetailsService.loadUserByUsername(email);
                     if (jwtUtils.isTokenValid(claims, userDetails)) {
                         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(

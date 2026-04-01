@@ -13,6 +13,8 @@ import com.financetracker.finance_tracker.ai.entity.TransactionCreatedEvent;
 import com.financetracker.finance_tracker.ai.service.AiFraudDetectionService.FraudAssessment;
 import com.financetracker.finance_tracker.alert.service.AlertService;
 import com.financetracker.finance_tracker.common.metrics.AppMetrics;
+import com.financetracker.finance_tracker.common.ratelimit.RateLimitDecision;
+import com.financetracker.finance_tracker.common.ratelimit.RateLimitService;
 import com.financetracker.finance_tracker.transaction.entity.Transaction;
 import com.financetracker.finance_tracker.transaction.repository.TransactionRepo;
 
@@ -30,6 +32,7 @@ public class AiEventListener {
     private final AlertService alertService;
     private final TransactionRepo transactionRepo;
     private final AppMetrics appMetrics;
+    private final RateLimitService rateLimitService;
 
     @EventListener
     @Async
@@ -44,6 +47,17 @@ public class AiEventListener {
                         "Transaction not found: " + event.getTransactionId()));
 
         try {
+            RateLimitDecision aiRateLimitDecision = rateLimitService.checkAiRequestLimit(event.getUserId().toString());
+            if (!aiRateLimitDecision.allowed()) {
+                appMetrics.incrementCounter("ai.events.skipped", "reason", "rate_limit");
+                log.warn("Skipping AI processing for transaction {} due to AI rate limit. Retry after {} seconds",
+                        event.getTransactionId(), aiRateLimitDecision.retryAfterSeconds());
+                transaction.setAiProcessed(false);
+                transaction.setUpdatedAt(LocalDateTime.now());
+                transactionRepo.save(transaction);
+                return;
+            }
+
             String aiCategory = categorizationService.categorize(
                     event.getDescription(),
                     event.getAmount());
