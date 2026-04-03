@@ -7,7 +7,7 @@ app:
 
 spring:
   datasource:
-    url: jdbc:postgresql://postgres:5437/finance_tracker
+    url: jdbc:postgresql://postgres:5432/finance_tracker
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
@@ -15,7 +15,7 @@ spring:
   data:
     redis:
       host: redis
-      port: 6377
+      port: 6379
 
   ai:
     google:
