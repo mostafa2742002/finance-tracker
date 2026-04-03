@@ -38,15 +38,6 @@ Most finance apps only store transactions. This project focuses on decision supp
 
 The backend is structured as independent internal modules (`user`, `transaction`, `budget`, `alert`, `ai`, `report`) inside one deployable service.
 
-## Screenshots
-
-### Architecture
-
-![Architecture Diagram](docs/images/architecture-diagram.png)
-
-If you have a custom diagram export, replace:
-
-- `docs/images/architecture-diagram.png`
 
 ## Features
 
